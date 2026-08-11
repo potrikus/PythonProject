@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="page-header">
+    <h1>Relatórios</h1>
+    <p>Relatórios previdenciários dos clientes.</p>
+</div>
+
+
+<div class="card">
+
+    <div class="card-header">
+        <h2>Relatório Previdenciário</h2>
+    </div>
+
+    <div class="card-body">
+
+        <form method="get">
+
+            <div class="form-group">
+
+                <label>
+                    Cliente
+                </label>
+
+                {{ form.cliente }}
+
+                {% if form.cliente.errors %}
+                    <div class="form-error">
+                        {{ form.cliente.errors }}
+                    </div>
+                {% endif %}
+
+            </div>
+
+
+            <button type="submit" class="btn btn-primary">
+                <i class="fa-solid fa-file-pdf"></i>
+                Gerar relatório
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endblock %}

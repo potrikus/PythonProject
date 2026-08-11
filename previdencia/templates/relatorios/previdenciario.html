@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="page-header">
+    <h1>Relatório Previdenciário</h1>
+    <p>Informações consolidadas do cliente</p>
+</div>
+
+
+<!-- CLIENTE -->
+
+<div class="card">
+
+    <div class="card-header">
+        <h2>Dados do Cliente</h2>
+    </div>
+
+    <div class="card-body">
+
+        <div class="info-grid">
+
+            <div>
+                <strong>Nome</strong>
+                <span>{{ cliente.nome }}</span>
+            </div>
+
+            <div>
+                <strong>CPF</strong>
+                <span>{{ cliente.cpf }}</span>
+            </div>
+
+            <div>
+                <strong>Nascimento</strong>
+                <span>{{ cliente.nascimento|date:"d/m/Y" }}</span>
+            </div>
+
+            <div>
+                <strong>Sexo</strong>
+                <span>{{ cliente.get_sexo_display }}</span>
+            </div>
+
+            <div>
+                <strong>Telefone</strong>
+                <span>{{ cliente.telefone|default:"-" }}</span>
+            </div>
+
+            <div>
+                <strong>Celular</strong>
+                <span>{{ cliente.celular|default:"-" }}</span>
+            </div>
+
+            <div>
+                <strong>E-mail</strong>
+                <span>{{ cliente.email|default:"-" }}</span>
+            </div>
+
+            <div>
+                <strong>PIS</strong>
+                <span>{{ cliente.pis|default:"-" }}</span>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- VÍNCULOS -->
+
+<div class="card">
+
+    <div class="card-header">
+        <h2>Vínculos Profissionais</h2>
+    </div>
+
+    <div class="card-body">
+
+        {% if vinculos %}
+
+        <div class="table-responsive">
+
+            <table class="table">
+
+                <thead>
+                    <tr>
+                        <th>Empresa</th>
+                        <th>Tipo</th>
+                        <th>Cargo</th>
+                        <th>Início</th>
+                        <th>Fim</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for vinculo in vinculos %}
+
+                    <tr>
+                        <td>
+                            {{ vinculo.empresa.razao_social }}
+                        </td>
+
+                        <td>
+                            {{ vinculo.get_tipo_display }}
+                        </td>
+
+                        <td>
+                            {{ vinculo.cargo|default:"-" }}
+                        </td>
+
+                        <td>
+                            {{ vinculo.data_inicio|date:"d/m/Y" }}
+                        </td>
+
+                        <td>
+                            {% if vinculo.data_fim %}
+                                {{ vinculo.data_fim|date:"d/m/Y" }}
+                            {% else %}
+                                Atual
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            {{ vinculo.get_status_display }}
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        {% else %}
+
+        <p>Nenhum vínculo profissional cadastrado.</p>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+<!-- SIMULAÇÕES -->
+
+<div class="card">
+
+    <div class="card-header">
+        <h2>Simulações Previdenciárias</h2>
+    </div>
+
+    <div class="card-body">
+
+        {% if simulacoes %}
+
+            {% for simulacao in simulacoes %}
+
+                <div class="simulation-item">
+
+                    <div>
+                        <strong>
+                            Simulação de {{ simulacao.data_referencia|date:"d/m/Y" }}
+                        </strong>
+
+                        <p>
+                            Criada em
+                            {{ simulacao.criado_em|date:"d/m/Y H:i" }}
+                        </p>
+                    </div>
+
+                    <div>
+                        <strong>Tempo de contribuição</strong>
+                        <span>
+                            {{ simulacao.resultado.anos_contribuicao|default:"-" }}
+                            anos
+                        </span>
+                    </div>
+
+                    <div>
+                        <strong>Benefício estimado</strong>
+
+                        <span>
+                            {% if simulacao.resultado.estimativa_beneficio %}
+                                R$
+                                {{ simulacao.resultado.estimativa_beneficio }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </span>
+                    </div>
+
+                </div>
+
+            {% endfor %}
+
+        {% else %}
+
+            <p>Nenhuma simulação previdenciária cadastrada.</p>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+{% endblock %}

@@ -1,0 +1,276 @@
+/* =========================================
+   RESET
+========================================= */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+
+/* =========================================
+   BODY
+========================================= */
+
+body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: #edf2f7;
+    color: #1f2937;
+}
+
+
+/* =========================================
+   LAYOUT PRINCIPAL
+========================================= */
+
+.wrapper {
+    display: flex;
+    min-height: 100vh;
+}
+
+
+/* =========================================
+   SIDEBAR
+========================================= */
+
+.sidebar {
+    width: 250px;
+    min-height: 100vh;
+
+    background: #1f2937;
+    color: white;
+
+    flex-shrink: 0;
+}
+
+
+/* =========================================
+   LOGO
+========================================= */
+
+.logo {
+    height: 70px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+
+    padding: 0 24px;
+
+    font-size: 18px;
+    font-weight: 700;
+
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.logo i {
+    font-size: 20px;
+}
+
+
+/* =========================================
+   MENU
+========================================= */
+
+.menu {
+    padding: 18px 12px;
+}
+
+
+/* =========================================
+   ITENS DO MENU
+========================================= */
+
+.menu-item {
+    display: flex;
+    align-items: center;
+
+    gap: 14px;
+
+    height: 46px;
+
+    padding: 0 14px;
+
+    margin-bottom: 6px;
+
+    color: #d1d5db;
+
+    text-decoration: none;
+
+    border-radius: 8px;
+
+    transition: all 0.2s ease;
+}
+
+
+/* Ícones */
+
+.menu-item i {
+    width: 20px;
+
+    text-align: center;
+
+    font-size: 15px;
+}
+
+
+/* Texto */
+
+.menu-item span {
+    font-size: 14px;
+}
+
+
+/* =========================================
+   HOVER DO MENU
+========================================= */
+
+.menu-item:hover {
+    background: #374151;
+
+    color: white;
+
+    transform: translateX(3px);
+}
+
+
+/* =========================================
+   ITEM ATIVO
+========================================= */
+
+.menu-item.active {
+    background: #2563eb;
+
+    color: white;
+
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+}
+
+
+/* =========================================
+   ÁREA PRINCIPAL
+========================================= */
+
+.main {
+    flex: 1;
+
+    min-width: 0;
+}
+
+
+/* =========================================
+   TOPBAR
+========================================= */
+
+.topbar {
+    height: 70px;
+
+    background: white;
+
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    padding: 0 30px;
+}
+
+
+/* =========================================
+   CARDS DO DASHBOARD
+========================================= */
+
+.card-dashboard {
+    border: none;
+
+    border-radius: 15px;
+
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+
+    background: white;
+
+    transition: all 0.2s ease;
+}
+
+
+/* Efeito ao passar o mouse */
+
+.card-dashboard:hover {
+    transform: translateY(-3px);
+
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+
+/* =========================================
+   RESPONSIVIDADE
+========================================= */
+
+@media (max-width: 900px) {
+
+    .sidebar {
+        width: 210px;
+    }
+
+    .topbar {
+        padding: 0 20px;
+    }
+
+}
+
+
+@media (max-width: 700px) {
+
+    .sidebar {
+        width: 70px;
+    }
+
+    .logo span {
+        display: none;
+    }
+
+    .menu-item span {
+        display: none;
+    }
+
+    .menu-item {
+        justify-content: center;
+
+        padding: 0;
+    }
+
+    .menu-item i {
+        width: auto;
+
+        font-size: 18px;
+    }
+
+}
+
+.page-header h1 {
+    font-weight: 700;
+}
+
+.content-card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+}
+
+.content-card .table thead th {
+    color: #6b7280;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    border-bottom-width: 1px;
+}
+
+.content-card .table td,
+.content-card .table th {
+    padding: 14px 10px;
+}

@@ -1,0 +1,59 @@
+<div class="sidebar">
+
+    <div class="logo">
+        <i class="fa-solid fa-scale-balanced"></i>
+        <span>INSS PRO</span>
+    </div>
+
+    <nav class="menu">
+
+        <!-- DASHBOARD -->
+        <a href="{% url 'clientes:home' %}"
+           class="menu-item {% if request.resolver_match.namespace == 'clientes' and request.resolver_match.url_name == 'home' %}active{% endif %}">
+            <i class="fa-solid fa-chart-line"></i>
+            <span>Dashboard</span>
+        </a>
+
+
+        <!-- CLIENTES -->
+        <a href="{% url 'clientes:lista' %}"
+           class="menu-item {% if request.resolver_match.namespace == 'clientes' and request.resolver_match.url_name != 'home' %}active{% endif %}">
+            <i class="fa-solid fa-users"></i>
+            <span>Clientes</span>
+        </a>
+
+
+        <!-- EMPRESAS -->
+        <a href="{% url 'empresas:lista' %}"
+           class="menu-item {% if request.resolver_match.namespace == 'empresas' %}active{% endif %}">
+            <i class="fa-solid fa-building"></i>
+            <span>Empresas</span>
+        </a>
+
+
+        <!-- VÍNCULOS -->
+        <a href="{% url 'vinculos:lista' %}"
+           class="menu-item {% if request.resolver_match.namespace == 'vinculos' %}active{% endif %}">
+            <i class="fa-solid fa-briefcase"></i>
+            <span>Vínculos</span>
+        </a>
+
+
+        <!-- CÁLCULOS -->
+        <a href="{% url 'calculos:lista' %}"
+           class="menu-item {% if request.resolver_match.namespace == 'calculos' %}active{% endif %}">
+            <i class="fa-solid fa-calculator"></i>
+            <span>Cálculos</span>
+        </a>
+
+
+        <!-- RELATÓRIOS -->
+        <a href="{% url 'relatorios:lista' %}"
+           class="menu-item {% if request.resolver_match.namespace == 'relatorios' %}active{% endif %}">
+            <i class="fa-solid fa-file-pdf"></i>
+            <span>Relatórios</span>
+        </a>
+
+    </nav>
+
+</div>
