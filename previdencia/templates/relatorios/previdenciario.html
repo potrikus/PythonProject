@@ -8,7 +8,9 @@
 </div>
 
 
-<!-- CLIENTE -->
+<!-- ============================= -->
+<!-- DADOS DO CLIENTE -->
+<!-- ============================= -->
 
 <div class="card">
 
@@ -67,7 +69,9 @@
 </div>
 
 
+<!-- ============================= -->
 <!-- VÍNCULOS -->
+<!-- ============================= -->
 
 <div class="card">
 
@@ -99,6 +103,7 @@
                     {% for vinculo in vinculos %}
 
                     <tr>
+
                         <td>
                             {{ vinculo.empresa.razao_social }}
                         </td>
@@ -139,7 +144,7 @@
 
         {% else %}
 
-        <p>Nenhum vínculo profissional cadastrado.</p>
+            <p>Nenhum vínculo profissional cadastrado.</p>
 
         {% endif %}
 
@@ -148,7 +153,9 @@
 </div>
 
 
+<!-- ============================= -->
 <!-- SIMULAÇÕES -->
+<!-- ============================= -->
 
 <div class="card">
 
@@ -162,11 +169,14 @@
 
             {% for simulacao in simulacoes %}
 
+                <!-- RESUMO DA SIMULAÇÃO -->
+
                 <div class="simulation-item">
 
                     <div>
                         <strong>
-                            Simulação de {{ simulacao.data_referencia|date:"d/m/Y" }}
+                            Simulação de
+                            {{ simulacao.data_referencia|date:"d/m/Y" }}
                         </strong>
 
                         <p>
@@ -176,10 +186,32 @@
                     </div>
 
                     <div>
+                        <strong>Idade</strong>
+
+                        <span>
+                            {{ simulacao.resultado.idade_anos|default:"-" }}
+                            anos
+                        </span>
+                    </div>
+
+                    <div>
                         <strong>Tempo de contribuição</strong>
+
                         <span>
                             {{ simulacao.resultado.anos_contribuicao|default:"-" }}
                             anos
+                        </span>
+                    </div>
+
+                    <div>
+                        <strong>Tempo especial</strong>
+
+                        <span>
+                            {% if simulacao.resultado.anos_exposicao %}
+                                {{ simulacao.resultado.anos_exposicao }} anos
+                            {% else %}
+                                -
+                            {% endif %}
                         </span>
                     </div>
 
@@ -198,11 +230,80 @@
 
                 </div>
 
+
+                <!-- ============================= -->
+                <!-- REGRAS PREVIDENCIÁRIAS -->
+                <!-- ============================= -->
+
+                {% if simulacao.resultado.regras %}
+
+                <div class="rules-section">
+
+                    <h3>Análise das Regras Previdenciárias</h3>
+
+                    {% for regra in simulacao.resultado.regras %}
+
+                        <div class="rule-item
+                            {% if regra.elegivel %}
+                                rule-success
+                            {% else %}
+                                rule-danger
+                            {% endif %}
+                        ">
+
+                            <div class="rule-header">
+
+                                <strong>
+                                    {{ regra.nome }}
+                                </strong>
+
+                                {% if regra.elegivel %}
+
+                                    <span class="rule-status success">
+                                        ✓ ELEGÍVEL
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="rule-status danger">
+                                        ✕ NÃO ELEGÍVEL
+                                    </span>
+
+                                {% endif %}
+
+                            </div>
+
+                            <div class="rule-details">
+
+                                <strong>Requisitos e análise:</strong>
+
+                                <p>
+                                    {{ regra.motivo }}
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+                {% else %}
+
+                    <div class="empty-message">
+                        Nenhuma regra previdenciária foi analisada nesta simulação.
+                    </div>
+
+                {% endif %}
+
             {% endfor %}
 
         {% else %}
 
-            <p>Nenhuma simulação previdenciária cadastrada.</p>
+            <p>
+                Nenhuma simulação previdenciária cadastrada.
+            </p>
 
         {% endif %}
 
@@ -210,5 +311,86 @@
 
 </div>
 
+
+<!-- ============================= -->
+<!-- ESTILOS ESPECÍFICOS -->
+<!-- ============================= -->
+
+<style>
+
+    .rules-section {
+        margin-top: 25px;
+    }
+
+    .rules-section h3 {
+        margin-bottom: 15px;
+        font-size: 20px;
+    }
+
+    .rule-item {
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        margin-bottom: 12px;
+        padding: 15px;
+        background: #fff;
+    }
+
+    .rule-success {
+        border-left: 5px solid #198754;
+    }
+
+    .rule-danger {
+        border-left: 5px solid #dc3545;
+    }
+
+    .rule-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 10px;
+    }
+
+    .rule-status {
+        font-size: 13px;
+        font-weight: bold;
+        padding: 5px 10px;
+        border-radius: 5px;
+        white-space: nowrap;
+    }
+
+    .rule-status.success {
+        color: #146c43;
+        background: #d1e7dd;
+    }
+
+    .rule-status.danger {
+        color: #b02a37;
+        background: #f8d7da;
+    }
+
+    .rule-details {
+        font-size: 14px;
+        color: #444;
+    }
+
+    .rule-details strong {
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    .rule-details p {
+        margin: 0;
+        line-height: 1.5;
+    }
+
+    .empty-message {
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 5px;
+        color: #666;
+    }
+
+</style>
 
 {% endblock %}
