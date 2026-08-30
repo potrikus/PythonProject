@@ -1,5 +1,287 @@
 {% extends "base.html" %}
+
 {% block content %}
-<div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4"><div><h1 class="h3 mb-1">Nova simulação</h1><p class="text-muted mb-0">RGPS urbano — aposentadoria programada e regras de transição.</p></div><a href="{% url 'calculos:lista' %}" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left me-2"></i>Voltar</a></div>
-<form method="post" novalidate>{% csrf_token %}<div class="card content-card mb-4"><div class="card-body p-4"><h2 class="h5 mb-3">Dados de elegibilidade</h2><p class="small text-muted">Informe o tempo validado no CNIS. A carência pode ser diferente do tempo de contribuição.</p><div class="row g-3">{% for field in form %}<div class="{% if field.name == 'cliente' or field.name == 'salario_medio_atualizado' or field.name == 'salario_contribuicao' %}col-md-6{% elif field.name == 'filiado_antes_reforma' or field.name == 'ppp_comprovado' or field.name == 'comprovacao_rural' %}col-md-12 form-check ms-2 mt-4{% else %}col-md-3{% endif %}"><label class="form-label" for="{{ field.id_for_label }}">{% if field.name != 'filiado_antes_reforma' and field.name != 'ppp_comprovado' and field.name != 'comprovacao_rural' %}{{ field.label }}{% endif %}{% if field.field.required and field.name != 'filiado_antes_reforma' and field.name != 'ppp_comprovado' and field.name != 'comprovacao_rural' %} <span class="text-danger">*</span>{% endif %}</label>{{ field }}{% if field.name == 'filiado_antes_reforma' %}<label class="form-check-label" for="{{ field.id_for_label }}">Já contribuía antes de 13/11/2019</label>{% endif %}{% if field.name == 'ppp_comprovado' %}<label class="form-check-label" for="{{ field.id_for_label }}">PPP/LTCAT válido para os períodos especiais</label>{% endif %}{% if field.name == 'comprovacao_rural' %}<label class="form-check-label" for="{{ field.id_for_label }}">Documentação rural ou autodeclaração disponível</label>{% endif %}{% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}{% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}</div>{% endfor %}</div></div></div><div class="alert alert-info small">A estimativa do benefício usa a média de salários já corrigida monetariamente. Sem uma importação/validação do CNIS, ela não substitui cálculo administrativo.</div><div class="d-flex justify-content-end gap-2"><a href="{% url 'calculos:lista' %}" class="btn btn-light">Cancelar</a><button type="submit" class="btn btn-primary"><i class="fa-solid fa-play me-2"></i>Calcular</button></div></form>
+
+<div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+
+    <div>
+        <h1 class="h3 mb-1">Nova simulação</h1>
+
+        <p class="text-muted mb-0">
+            RGPS urbano — aposentadoria programada e regras de transição.
+        </p>
+    </div>
+
+    <a href="{% url 'calculos:lista' %}" class="btn btn-outline-secondary">
+        <i class="fa-solid fa-arrow-left me-2"></i>
+        Voltar
+    </a>
+
+</div>
+
+<form method="post" novalidate>
+
+    {% csrf_token %}
+
+    <div class="card content-card mb-4">
+
+        <div class="card-body p-4">
+
+            <h2 class="h5 mb-3">Dados de elegibilidade</h2>
+
+            <p class="small text-muted">
+                Informe o tempo validado no CNIS.
+                A carência pode ser diferente do tempo de contribuição.
+            </p>
+
+            <div class="row g-3">
+
+                {% for field in form %}
+
+                    <div
+                        class="
+                        {% if field.name == 'cliente' or field.name == 'salario_medio_atualizado' or field.name == 'salario_contribuicao' %}
+                            col-md-6
+                        {% elif field.name == 'filiado_antes_reforma' or field.name == 'ppp_comprovado' or field.name == 'comprovacao_rural' or field.name == 'comprovacao_magisterio' or field.name == 'deficiencia_reconhecida' %}
+                            col-md-12 form-check ms-2 mt-4
+                        {% else %}
+                            col-md-3
+                        {% endif %}
+                        "
+                    >
+
+                        {% if field.name != 'filiado_antes_reforma' and field.name != 'ppp_comprovado' and field.name != 'comprovacao_rural' and field.name != 'comprovacao_magisterio' and field.name != 'deficiencia_reconhecida' %}
+
+                            <label
+                                class="form-label"
+                                for="{{ field.id_for_label }}"
+                            >
+                                {{ field.label }}
+
+                                {% if field.field.required %}
+                                    <span class="text-danger">*</span>
+                                {% endif %}
+                            </label>
+
+                        {% endif %}
+
+                        {{ field }}
+
+                        {% if field.name == 'filiado_antes_reforma' %}
+
+                            <label
+                                class="form-check-label"
+                                for="{{ field.id_for_label }}"
+                            >
+                                Já contribuía antes de 13/11/2019
+                            </label>
+
+                        {% endif %}
+
+                        {% if field.name == 'ppp_comprovado' %}
+
+                            <label
+                                class="form-check-label"
+                                for="{{ field.id_for_label }}"
+                            >
+                                PPP/LTCAT válido para os períodos especiais
+                            </label>
+
+                        {% endif %}
+
+                        {% if field.name == 'comprovacao_rural' %}
+
+                            <label
+                                class="form-check-label"
+                                for="{{ field.id_for_label }}"
+                            >
+                                Documentação rural ou autodeclaração disponível
+                            </label>
+
+                        {% endif %}
+
+                        {% if field.name == 'comprovacao_magisterio' %}
+
+                            <label
+                                class="form-check-label"
+                                for="{{ field.id_for_label }}"
+                            >
+                                Documentação de magistério disponível
+                            </label>
+
+                        {% endif %}
+
+                        {% if field.name == 'deficiencia_reconhecida' %}
+
+                            <label
+                                class="form-check-label"
+                                for="{{ field.id_for_label }}"
+                            >
+                                Deficiência reconhecida pelo INSS
+                            </label>
+
+                        {% endif %}
+
+                        {% if field.help_text %}
+
+                            <div class="form-text">
+                                {{ field.help_text }}
+                            </div>
+
+                        {% endif %}
+
+                        {% for error in field.errors %}
+
+                            <div class="invalid-feedback d-block">
+                                {{ error }}
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="alert alert-info small">
+
+        <strong>Atenção:</strong>
+
+        A estimativa do benefício usa a média de salários
+        já corrigida monetariamente.
+
+        Sem uma importação/validação do CNIS,
+        ela não substitui cálculo administrativo.
+
+    </div>
+
+    <div class="d-flex justify-content-end gap-2">
+
+        <a href="{% url 'calculos:lista' %}" class="btn btn-light">
+            Cancelar
+        </a>
+
+        <button type="submit" class="btn btn-primary">
+            <i class="fa-solid fa-play me-2"></i>
+            Calcular
+        </button>
+
+    </div>
+
+</form>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const campos = document.querySelectorAll("[data-moeda-br='true']");
+
+    function analisarMoeda(valorOriginal) {
+        let valor = valorOriginal
+            .trim()
+            .replace(/^R\$\s*/i, "");
+
+        if (!valor) {
+            return { valido: true, vazio: true };
+        }
+
+        const semMilhar = /^\d{1,4}(?:,\d{1,2})?$/;
+        const comMilhar = /^\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?$/;
+        const somenteDigitosLongo = /^\d{5,}$/;
+
+        if (somenteDigitosLongo.test(valor)) {
+            return {
+                valido: false,
+                mensagem: "Valor ambíguo. Use, por exemplo, 3.850,00."
+            };
+        }
+
+        if (!semMilhar.test(valor) && !comMilhar.test(valor)) {
+            return {
+                valido: false,
+                mensagem: "Use o formato brasileiro, por exemplo: 3.850,00."
+            };
+        }
+
+        const partes = valor.replace(/\./g, "").split(",");
+        const inteiro = partes[0].replace(/^0+(?=\d)/, "") || "0";
+        const centavos = (partes[1] || "").padEnd(2, "0");
+
+        return {
+            valido: true,
+            formatado:
+                inteiro.replace(/\B(?=(\d{3})+(?!\d))/g, ".")
+                + "," + centavos
+        };
+    }
+
+    function mostrarErro(campo, mensagem) {
+        campo.classList.add("is-invalid");
+
+        let erro = campo.parentElement.querySelector(".js-erro-moeda");
+
+        if (!erro) {
+            erro = document.createElement("div");
+            erro.className = "invalid-feedback d-block js-erro-moeda";
+            campo.parentElement.appendChild(erro);
+        }
+
+        erro.textContent = mensagem;
+    }
+
+    function limparErro(campo) {
+        campo.classList.remove("is-invalid");
+
+        const erro = campo.parentElement.querySelector(".js-erro-moeda");
+
+        if (erro) {
+            erro.remove();
+        }
+    }
+
+    campos.forEach(function (campo) {
+        campo.addEventListener("input", function () {
+            limparErro(campo);
+        });
+
+        campo.addEventListener("blur", function () {
+            const resultado = analisarMoeda(campo.value);
+
+            if (!resultado.valido) {
+                mostrarErro(campo, resultado.mensagem);
+                return;
+            }
+
+            limparErro(campo);
+
+            if (!resultado.vazio) {
+                campo.value = resultado.formatado;
+            }
+        });
+    });
+
+    document.querySelectorAll("form").forEach(function (formulario) {
+        formulario.addEventListener("submit", function (evento) {
+            let possuiErro = false;
+
+            campos.forEach(function (campo) {
+                const resultado = analisarMoeda(campo.value);
+
+                if (!resultado.valido) {
+                    possuiErro = true;
+                    mostrarErro(campo, resultado.mensagem);
+                }
+            });
+
+            if (possuiErro) {
+                evento.preventDefault();
+            }
+        });
+    });
+});
+</script>
+
 {% endblock %}

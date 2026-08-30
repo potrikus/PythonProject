@@ -4,6 +4,11 @@ from django.shortcuts import get_object_or_404, redirect, render
 from .forms import SimulacaoForm
 from .models import Simulacao
 from .services import calcular_contribuicao, simular
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
+
+from .models import Simulacao
+from .relatorio_pdf import gerar_relatorio_simulacao
 
 
 def lista(request):
@@ -115,3 +120,14 @@ def detalhe(request, pk):
             "simulacao": simulacao,
         },
     )
+def relatorio_simulacao(request, pk):
+    simulacao = get_object_or_404(Simulacao, pk=pk)
+
+    response = HttpResponse(content_type="application/pdf")
+    response["Content-Disposition"] = (
+        f'inline; filename="simulacao-{simulacao.pk}.pdf"'
+    )
+
+    gerar_relatorio_simulacao(response, simulacao)
+
+    return response

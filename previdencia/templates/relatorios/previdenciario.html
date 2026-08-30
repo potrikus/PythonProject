@@ -70,6 +70,59 @@
 
 
 <!-- ============================= -->
+<!-- RESULTADO PRINCIPAL -->
+<!-- ============================= -->
+
+<div class="card">
+
+    <div class="card-header">
+        <h2>Resultado Previdenciário</h2>
+    </div>
+
+    <div class="card-body">
+
+        {% if melhor_regra %}
+
+            <div class="main-result main-result-success">
+
+                <div class="main-result-title">
+                    ✓ REGRA ATUALMENTE ELEGÍVEL
+                </div>
+
+                <h3>
+                    {{ melhor_regra.nome }}
+                </h3>
+
+                <p>
+                    {{ melhor_regra.motivo }}
+                </p>
+
+            </div>
+
+        {% else %}
+
+            <div class="main-result main-result-warning">
+
+                <div class="main-result-title">
+                    ⚠ NENHUMA REGRA ELEGÍVEL NO MOMENTO
+                </div>
+
+                <p>
+                    A última simulação não identificou uma regra
+                    previdenciária para a qual o cliente já esteja
+                    elegível com os dados informados.
+                </p>
+
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+<!-- ============================= -->
 <!-- VÍNCULOS -->
 <!-- ============================= -->
 
@@ -144,7 +197,9 @@
 
         {% else %}
 
-            <p>Nenhum vínculo profissional cadastrado.</p>
+            <p>
+                Nenhum vínculo profissional cadastrado.
+            </p>
 
         {% endif %}
 
@@ -169,7 +224,9 @@
 
             {% for simulacao in simulacoes %}
 
+                <!-- ============================= -->
                 <!-- RESUMO DA SIMULAÇÃO -->
+                <!-- ============================= -->
 
                 <div class="simulation-item">
 
@@ -185,6 +242,7 @@
                         </p>
                     </div>
 
+
                     <div>
                         <strong>Idade</strong>
 
@@ -193,6 +251,7 @@
                             anos
                         </span>
                     </div>
+
 
                     <div>
                         <strong>Tempo de contribuição</strong>
@@ -203,28 +262,43 @@
                         </span>
                     </div>
 
+
                     <div>
                         <strong>Tempo especial</strong>
 
                         <span>
+
                             {% if simulacao.resultado.anos_exposicao %}
-                                {{ simulacao.resultado.anos_exposicao }} anos
+
+                                {{ simulacao.resultado.anos_exposicao }}
+                                anos
+
                             {% else %}
+
                                 -
+
                             {% endif %}
+
                         </span>
                     </div>
+
 
                     <div>
                         <strong>Benefício estimado</strong>
 
                         <span>
+
                             {% if simulacao.resultado.estimativa_beneficio %}
+
                                 R$
                                 {{ simulacao.resultado.estimativa_beneficio }}
+
                             {% else %}
+
                                 -
+
                             {% endif %}
+
                         </span>
                     </div>
 
@@ -239,11 +313,15 @@
 
                 <div class="rules-section">
 
-                    <h3>Análise das Regras Previdenciárias</h3>
+                    <h3>
+                        Análise das Regras Previdenciárias
+                    </h3>
+
 
                     {% for regra in simulacao.resultado.regras %}
 
-                        <div class="rule-item
+                        <div class="
+                            rule-item
                             {% if regra.elegivel %}
                                 rule-success
                             {% else %}
@@ -256,6 +334,7 @@
                                 <strong>
                                     {{ regra.nome }}
                                 </strong>
+
 
                                 {% if regra.elegivel %}
 
@@ -273,9 +352,12 @@
 
                             </div>
 
+
                             <div class="rule-details">
 
-                                <strong>Requisitos e análise:</strong>
+                                <strong>
+                                    Requisitos e análise:
+                                </strong>
 
                                 <p>
                                     {{ regra.motivo }}
@@ -292,7 +374,10 @@
                 {% else %}
 
                     <div class="empty-message">
-                        Nenhuma regra previdenciária foi analisada nesta simulação.
+
+                        Nenhuma regra previdenciária foi
+                        analisada nesta simulação.
+
                     </div>
 
                 {% endif %}
@@ -317,6 +402,55 @@
 <!-- ============================= -->
 
 <style>
+
+    /* ============================= */
+    /* RESULTADO PRINCIPAL */
+    /* ============================= */
+
+    .main-result {
+        padding: 22px;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+    }
+
+    .main-result-success {
+        border-left: 6px solid #198754;
+        background: #f0fff6;
+    }
+
+    .main-result-warning {
+        border-left: 6px solid #ffc107;
+        background: #fffbea;
+    }
+
+    .main-result-title {
+        font-size: 14px;
+        font-weight: bold;
+        margin-bottom: 8px;
+    }
+
+    .main-result-success .main-result-title {
+        color: #146c43;
+    }
+
+    .main-result-warning .main-result-title {
+        color: #997404;
+    }
+
+    .main-result h3 {
+        margin: 5px 0 10px 0;
+        font-size: 22px;
+    }
+
+    .main-result p {
+        margin: 0;
+        line-height: 1.5;
+    }
+
+
+    /* ============================= */
+    /* REGRAS */
+    /* ============================= */
 
     .rules-section {
         margin-top: 25px;
@@ -384,6 +518,11 @@
         line-height: 1.5;
     }
 
+
+    /* ============================= */
+    /* MENSAGEM VAZIA */
+    /* ============================= */
+
     .empty-message {
         padding: 15px;
         background: #f8f9fa;
@@ -391,6 +530,27 @@
         color: #666;
     }
 
+
+    /* ============================= */
+    /* RESPONSIVIDADE */
+    /* ============================= */
+
+    @media (max-width: 768px) {
+
+        .rule-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .simulation-item {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+    }
+
 </style>
+
 
 {% endblock %}
