@@ -1,49 +1,138 @@
 {% extends "base.html" %}
+{% load moeda %}
 
 {% block content %}
-
-<div class="page-header">
-    <h1>Relatórios</h1>
-    <p>Relatórios previdenciários dos clientes.</p>
-</div>
-
-
-<div class="card">
-
-    <div class="card-header">
-        <h2>Relatório Previdenciário</h2>
+<div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+        <h1 class="h3 mb-1">Relatórios</h1>
+        <p class="text-muted mb-0">
+            Histórico de simulações previdenciárias e acesso aos PDFs.
+        </p>
     </div>
 
-    <div class="card-body">
+    <a href="{% url 'calculos:nova' %}" class="btn btn-primary">
+        <i class="fa-solid fa-plus me-2"></i>
+        Nova simulação
+    </a>
+</div>
 
-        <form method="get">
-
-            <div class="form-group">
-
-                <label>
-                    Cliente
+<div class="card content-card mb-4">
+    <div class="card-body p-4">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label" for="{{ form.busca.id_for_label }}">
+                    Buscar cliente
                 </label>
-
-                {{ form.cliente }}
-
-                {% if form.cliente.errors %}
-                    <div class="form-error">
-                        {{ form.cliente.errors }}
-                    </div>
-                {% endif %}
-
+                {{ form.busca }}
             </div>
 
+            <div class="col-md-5">
+                <label class="form-label" for="{{ form.cliente.id_for_label }}">
+                    Filtrar por cliente
+                </label>
+                {{ form.cliente }}
+            </div>
 
-            <button type="submit" class="btn btn-primary">
-                <i class="fa-solid fa-file-pdf"></i>
-                Gerar relatório
-            </button>
-
+            <div class="col-md-2 d-grid">
+                <button type="submit" class="btn btn-outline-primary">
+                    <i class="fa-solid fa-magnifying-glass me-2"></i>
+                    Buscar
+                </button>
+            </div>
         </form>
-
     </div>
-
 </div>
 
+<div class="card content-card">
+    <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="h5 mb-0">Simulações encontradas</h2>
+            <span class="badge text-bg-secondary">
+                {{ quantidade_simulacoes }}
+            </span>
+        </div>
+
+        {% if simulacoes %}
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Referência</th>
+                            <th>Benefício estimado</th>
+                            <th>Regras elegíveis</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for simulacao in simulacoes %}
+                            <tr>
+                                <td>
+                                    <strong>{{ simulacao.cliente }}</strong>
+                                    <div class="small text-muted">
+                                        CPF: {{ simulacao.cliente.cpf }}
+                                    </div>
+                                </td>
+
+                                <td>
+                                    {{ simulacao.data_referencia|date:"d/m/Y" }}
+                                </td>
+
+                                <td>
+                                    {% if simulacao.resultado.estimativa_beneficio %}
+                                       R$ {{ simulacao.resultado.estimativa_beneficio|moeda_br }}
+                                    {% else %}
+                                        <span class="text-muted">Não calculado</span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    {{ simulacao.resultado.quantidade_regras_elegiveis|default:"0" }}
+                                </td>
+
+                                <td class="text-end">
+                                    <div class="btn-group">
+                                        <a
+                                            href="{% url 'calculos:detalhe' simulacao.pk %}"
+                                            class="btn btn-sm btn-outline-primary"
+                                            title="Ver simulação"
+                                        >
+                                            <i class="fa-solid fa-eye"></i>
+                                        </a>
+
+                                        <a
+                                            href="{% url 'calculos:relatorio' simulacao.pk %}"
+                                            target="_blank"
+                                            rel="noopener"
+                                            class="btn btn-sm btn-outline-danger"
+                                            title="Abrir PDF"
+                                        >
+                                            <i class="fa-solid fa-file-pdf"></i>
+                                        </a>
+
+                                        <a
+                                            href="{% url 'relatorios:previdenciario' simulacao.cliente.pk %}"
+                                            class="btn btn-sm btn-outline-secondary"
+                                            title="Relatório do cliente"
+                                        >
+                                            <i class="fa-solid fa-user"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fa-solid fa-file-circle-xmark fa-2x text-muted mb-3"></i>
+                <p class="text-muted mb-0">
+                    Nenhuma simulação foi encontrada para os filtros informados.
+                </p>
+            </div>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}

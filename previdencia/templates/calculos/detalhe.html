@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load moeda %}
 
 {% block content %}
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
@@ -73,7 +74,7 @@
                 <small class="text-muted">Contribuição mensal 2026</small>
                 <h2 class="h4 mb-0">
                     {% if simulacao.resultado.contribuicao_mensal %}
-                        R$ {{ simulacao.resultado.contribuicao_mensal }}
+                        R$ {{ simulacao.resultado.contribuicao_mensal|moeda_br }}
                     {% else %}
                         —
                     {% endif %}
@@ -116,7 +117,7 @@
 
         {% if simulacao.resultado.estimativa_beneficio %}
             <p class="h3 text-primary mb-1">
-                R$ {{ simulacao.resultado.estimativa_beneficio }}
+                R$ {{ simulacao.resultado.estimativa_beneficio|moeda_br }}
             </p>
 
             <p class="small text-muted mb-0">
