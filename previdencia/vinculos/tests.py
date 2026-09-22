@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
@@ -10,7 +11,20 @@ from .models import Vinculo
 
 
 class VinculoViewsTests(TestCase):
+
     def setUp(self):
+        User = get_user_model()
+
+        self.usuario = User.objects.create_user(
+            username="teste",
+            password="Teste@123456",
+        )
+
+        self.client.login(
+            username="teste",
+            password="Teste@123456",
+        )
+
         self.cliente = Cliente.objects.create(
             nome="Maria da Silva",
             cpf="529.982.247-25",
@@ -41,16 +55,27 @@ class VinculoViewsTests(TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(Vinculo.objects.count(), 1)
-        self.assertRedirects(response, reverse("vinculos:lista"))
+        self.assertRedirects(
+            response,
+            reverse("vinculos:lista"),
+        )
 
         vinculo = Vinculo.objects.get()
-        self.assertEqual(vinculo.salario, Decimal("2500.00"))
+
+        self.assertEqual(
+            vinculo.salario,
+            Decimal("2500.00"),
+        )
 
         response = self.client.get(
             reverse("vinculos:lista"),
             {"q": "Maria"},
         )
-        self.assertContains(response, "Analista")
+
+        self.assertContains(
+            response,
+            "Analista",
+        )
 
         response = self.client.post(
             reverse("vinculos:editar", args=[vinculo.pk]),
@@ -60,13 +85,24 @@ class VinculoViewsTests(TestCase):
                 "data_fim": "2021-01-10",
             },
         )
-        self.assertRedirects(response, reverse("vinculos:lista"))
+
+        self.assertRedirects(
+            response,
+            reverse("vinculos:lista"),
+        )
 
         response = self.client.post(
             reverse("vinculos:excluir", args=[vinculo.pk]),
         )
-        self.assertRedirects(response, reverse("vinculos:lista"))
-        self.assertFalse(Vinculo.objects.exists())
+
+        self.assertRedirects(
+            response,
+            reverse("vinculos:lista"),
+        )
+
+        self.assertFalse(
+            Vinculo.objects.exists()
+        )
 
     def test_data_final_anterior_e_invalida(self):
         response = self.client.post(
@@ -77,6 +113,16 @@ class VinculoViewsTests(TestCase):
             },
         )
 
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "data de fim")
-        self.assertFalse(Vinculo.objects.exists())
+        self.assertEqual(
+            response.status_code,
+            200,
+        )
+
+        self.assertContains(
+            response,
+            "data de fim",
+        )
+
+        self.assertFalse(
+            Vinculo.objects.exists()
+        )
