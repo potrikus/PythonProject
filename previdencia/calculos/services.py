@@ -307,7 +307,38 @@ def calcular_coeficiente(
         coeficiente,
     )
 
+def calcular_coeficiente_pcd_idade(
+    meses_contribuicao,
+):
+    """
+    Coeficiente da aposentadoria por idade
+    da pessoa com deficiência.
 
+    70% + 1% por grupo de 12 contribuições,
+    limitado a 100%.
+    """
+
+    meses_contribuicao = inteiro(
+        meses_contribuicao
+    )
+
+    grupos_12 = max(
+        0,
+        meses_contribuicao // 12,
+    )
+
+    coeficiente = (
+        Decimal("0.70")
+        + (
+            Decimal("0.01")
+            * Decimal(grupos_12)
+        )
+    )
+
+    return min(
+        Decimal("1.00"),
+        coeficiente,
+    )
 # ============================================================
 # SIMULAÇÃO PREVIDENCIÁRIA
 # ============================================================
@@ -323,6 +354,7 @@ def simular(
     grau_exposicao=None,
     exposicao_meses=0,
     ppp_comprovado=False,
+    exposicao_meses_2019=None,
     rural_meses=0,
     hibrido_meses=0,
     comprovacao_rural=False,
@@ -351,6 +383,12 @@ def simular(
     exposicao_meses = inteiro(
         exposicao_meses
     )
+    if exposicao_meses_2019 is None:
+        exposicao_meses_2019 = exposicao_meses
+    else:
+        exposicao_meses_2019 = inteiro(
+            exposicao_meses_2019
+        )
 
     rural_meses = inteiro(
         rural_meses
@@ -759,7 +797,7 @@ def simular(
 
             direito_adquirido = (
                 filiado_antes
-                and exposicao_meses
+                and exposicao_meses_2019
                 >= int(
                     tempo_especial
                     * 12
@@ -778,8 +816,8 @@ def simular(
                     "180 meses de carência "
                     "e comprovação da exposição "
                     "por PPP/LTCAT. "
-                    f"Exposição informada: "
-                    f"{exposicao_anos:.2f} anos."
+                    f"Exposição até 13/11/2019: "
+                    f"{Decimal(exposicao_meses_2019) / Decimal('12'):.2f} anos."
                 ),
             )
 
@@ -931,16 +969,40 @@ def simular(
             magisterio_meses
         )
 
-        pontos_professor = (
-            idade_anos
-            + anos_magisterio
+        # ====================================================
+        # DIREITO ADQUIRIDO — PROFESSOR
+        # ====================================================
+
+        direito_adquirido_professor = (
+            filiado_antes
+            and magisterio_2019_meses
+            >= int(tempo_professor * 12)
+            and carencia >= 180
+            and comprovacao_magisterio
         )
 
-        # Progressão começa em 2020.
-        # Em 2026:
-        # Mulher = 93? NÃO.
-        # Para professor a base específica
-        # é 86/96 em 2019 e cresce 1 ponto/ano.
+        adicionar(
+            "Professor — direito adquirido",
+            direito_adquirido_professor,
+            (
+                f"Exige {tempo_professor} anos "
+                "de efetivo exercício do magistério "
+                "até 13/11/2019, 180 meses de carência "
+                "e comprovação do exercício. "
+                f"Magistério até 13/11/2019: "
+                f"{Decimal(magisterio_2019_meses) / Decimal('12'):.2f} anos."
+            ),
+        )
+
+        # ====================================================
+        # PONTOS DO PROFESSOR
+        # ====================================================
+
+        pontos_professor = (
+            idade_anos
+            + contribuicao_anos
+        )
+
         pontos_professor_base = (
             Decimal("81")
             if sexo_feminino
@@ -953,9 +1015,9 @@ def simular(
         )
 
         limite_pontos_professor = (
-            Decimal("100")
+            Decimal("92")
             if sexo_feminino
-            else Decimal("105")
+            else Decimal("100")
         )
 
         pontos_professor_exigidos = min(
@@ -963,6 +1025,10 @@ def simular(
             + Decimal(incremento_professor),
             limite_pontos_professor,
         )
+
+        # ====================================================
+        # IDADE DO PROFESSOR
+        # ====================================================
 
         idade_professor = (
             Decimal("57")
@@ -991,22 +1057,18 @@ def simular(
             idade_professor,
         )
 
-        tempo_professor_2019 = (
+        # ====================================================
+        # REGRA PROGRAMADA
+        # ====================================================
+
+        tempo_professor_meses = (
             int(tempo_professor)
             * 12
         )
 
-        falta_professor_2019 = max(
-            0,
-            tempo_professor_2019
-            - magisterio_2019_meses,
-        )
-
         elegivel_professor_programada = (
-            idade_anos
-            >= idade_professor
-            and magisterio_meses
-            >= tempo_professor_2019
+            idade_anos >= idade_professor
+            and magisterio_meses >= tempo_professor_meses
             and carencia >= 180
             and comprovacao_magisterio
         )
@@ -1015,21 +1077,25 @@ def simular(
             "Professor — regra programada",
             elegivel_professor_programada,
             (
-                f"Exige {idade_professor} "
-                "anos de idade, "
-                f"{tempo_professor} anos "
-                "de efetivo exercício "
-                "do magistério na educação "
-                "básica, 180 meses de carência "
-                "e comprovação."
+                f"Exige {idade_professor} anos de idade, "
+                f"{tempo_professor} anos de efetivo exercício "
+                "do magistério na educação básica, "
+                "180 meses de carência e comprovação."
             ),
         )
 
+        # ====================================================
+        # REGRAS DE TRANSIÇÃO
+        # ====================================================
+
         if filiado_antes:
 
+            # ------------------------------------------------
+            # TRANSIÇÃO POR PONTOS
+            # ------------------------------------------------
+
             elegivel_professor_pontos = (
-                anos_magisterio
-                >= tempo_professor
+                anos_magisterio >= tempo_professor
                 and pontos_professor
                 >= pontos_professor_exigidos
                 and carencia >= 180
@@ -1042,20 +1108,22 @@ def simular(
                 (
                     f"Exige {pontos_professor_exigidos} "
                     f"pontos em {ano_referencia}, "
-                    f"{tempo_professor} anos "
-                    "de efetivo exercício "
-                    "do magistério e "
+                    f"{tempo_professor} anos de efetivo "
+                    "exercício do magistério e "
                     "180 meses de carência. "
                     f"Pontuação apurada: "
                     f"{pontos_professor:.2f}."
                 ),
             )
 
+            # ------------------------------------------------
+            # IDADE PROGRESSIVA
+            # ------------------------------------------------
+
             elegivel_professor_idade = (
                 idade_anos
                 >= idade_professor_progressiva
-                and anos_magisterio
-                >= tempo_professor
+                and anos_magisterio >= tempo_professor
                 and carencia >= 180
                 and comprovacao_magisterio
             )
@@ -1064,14 +1132,21 @@ def simular(
                 "Professor — idade progressiva",
                 elegivel_professor_idade,
                 (
-                    f"Exige "
-                    f"{idade_professor_progressiva} "
-                    "anos de idade em "
-                    f"{ano_referencia}, "
-                    f"{tempo_professor} anos "
-                    "de magistério e "
-                    "180 meses de carência."
+                    f"Exige {idade_professor_progressiva} "
+                    f"anos de idade em {ano_referencia}, "
+                    f"{tempo_professor} anos de magistério "
+                    "e 180 meses de carência."
                 ),
+            )
+
+            # ------------------------------------------------
+            # PEDÁGIO DE 100%
+            # ------------------------------------------------
+
+            falta_professor_2019 = max(
+                0,
+                tempo_professor_meses
+                - magisterio_2019_meses,
             )
 
             idade_professor_pedagio = (
@@ -1081,13 +1156,9 @@ def simular(
             )
 
             tempo_professor_pedagio = (
-                Decimal(
-                    magisterio_2019_meses
-                )
+                Decimal(magisterio_2019_meses)
                 + (
-                    Decimal(
-                        falta_professor_2019
-                    )
+                    Decimal(falta_professor_2019)
                     * Decimal("2")
                 )
             )
@@ -1105,12 +1176,10 @@ def simular(
                 "Professor — pedágio de 100%",
                 elegivel_professor_pedagio,
                 (
-                    f"Exige "
-                    f"{idade_professor_pedagio} "
+                    f"Exige {idade_professor_pedagio} "
                     "anos de idade, "
-                    f"{tempo_professor} anos "
-                    "de magistério e "
-                    "100% do tempo que faltava "
+                    f"{tempo_professor} anos de magistério "
+                    "e 100% do tempo que faltava "
                     "em 13/11/2019. "
                     f"Tempo informado em 2019: "
                     f"{magisterio_2019_meses / 12:.2f} anos. "
@@ -1120,6 +1189,8 @@ def simular(
                     f"{tempo_professor_pedagio / 12:.2f} anos."
                 ),
             )
+
+
 
     # ========================================================
     # PESSOA COM DEFICIÊNCIA
@@ -1173,6 +1244,19 @@ def simular(
                 and deficiencia_reconhecida
             )
 
+
+
+            coeficiente_pcd_idade = (
+                calcular_coeficiente_pcd_idade(
+                    meses_contribuicao
+                )
+                if elegivel_pcd_idade
+                else Decimal("0")
+            )
+
+
+
+
             adicionar(
                 "PCD — por idade",
                 elegivel_pcd_idade,
@@ -1185,6 +1269,7 @@ def simular(
                     "e reconhecimento "
                     "da deficiência."
                 ),
+
             )
 
             tempo_pcd_meses = int(

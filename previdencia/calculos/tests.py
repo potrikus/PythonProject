@@ -8,7 +8,7 @@ from django.urls import reverse
 from clientes.models import Cliente
 
 from .models import Simulacao
-from .services import calcular_contribuicao, simular
+from .services import calcular_contribuicao, simular, calcular_coeficiente_pcd_idade
 
 
 class CalculosTests(TestCase):
@@ -740,34 +740,55 @@ class CalculosTests(TestCase):
     # --------------------------------------------------------
 
     def test_professor_pontos_2026(self):
-        resultado = simular(
-            self.cliente,
-            date(2026, 8, 8),
-            180,
-            360,
-            300,
-            True,
-            None,
-            magisterio_meses=360,
-            magisterio_2019_meses=300,
-            comprovacao_magisterio=True,
-        )
+        casos = [
+            # Mulher: 61 + 27 = 88
+            (date(1965, 8, 8), "F", 324, 300, True),
 
-        regra = next(
-            regra
-            for regra in resultado["regras"]
-            if regra["nome"]
-            == "Professor — transição por pontos"
-        )
+            # Mulher: 61 + 26 = 87
+            (date(1965, 8, 8), "F", 312, 300, False),
 
-        self.assertTrue(
-            regra["elegivel"]
-        )
+            # Homem: 60 + 38 = 98
+            (date(1966, 8, 8), "M", 456, 360, True),
 
-        self.assertIn(
-            "88",
-            regra["motivo"],
-        )
+            # Homem: 60 + 37 = 97
+            (date(1966, 8, 8), "M", 444, 360, False),
+        ]
+
+        for (
+                nascimento,
+                sexo,
+                meses_contribuicao,
+                magisterio_meses,
+                esperado,
+        ) in casos:
+            cliente = self.cliente
+            cliente.sexo = sexo
+            cliente.nascimento = nascimento
+            cliente.save()
+
+            resultado = simular(
+                cliente,
+                date(2026, 8, 8),
+                180,
+                meses_contribuicao,
+                300,
+                True,
+                None,
+                magisterio_meses=magisterio_meses,
+                comprovacao_magisterio=True,
+            )
+
+            regra = next(
+                regra
+                for regra in resultado["regras"]
+                if regra["nome"]
+                == "Professor — transição por pontos"
+            )
+
+            self.assertEqual(
+                regra["elegivel"],
+                esperado,
+            )
 
     # --------------------------------------------------------
     # PROFESSOR - PEDÁGIO 100%
@@ -1310,3 +1331,338 @@ class CalculosTests(TestCase):
         )
 
         self.assertTrue(regra["elegivel"])
+
+    def test_especial_direito_adquirido_exige_tempo_ate_2019(self):
+        resultado = simular(
+            self.cliente,
+            date(2026, 8, 8),
+            180,
+            300,
+            300,
+            True,
+            None,
+            grau_exposicao="25",
+            exposicao_meses=300,
+            ppp_comprovado=True,
+        )
+
+        regra = next(
+            regra
+            for regra in resultado["regras"]
+            if regra["nome"] == "Aposentadoria especial — direito adquirido"
+        )
+
+        self.assertTrue(regra["elegivel"])
+
+    def test_especial_direito_adquirido_nao_usa_tempo_posterior_a_2019(self):
+        resultado = simular(
+            self.cliente,
+            date(2026, 8, 8),
+            180,
+            360,
+            300,
+            True,
+            None,
+            grau_exposicao="25",
+            exposicao_meses=360,
+            ppp_comprovado=True,
+            exposicao_meses_2019=240,
+        )
+
+        regra = next(
+            regra
+            for regra in resultado["regras"]
+            if regra["nome"] == "Aposentadoria especial — direito adquirido"
+        )
+
+        self.assertFalse(regra["elegivel"])
+
+        def test_professor_direito_adquirido(self):
+            casos = [
+                # Mulher: 25 anos completos até 13/11/2019
+                (25 * 12, True),
+
+                # Mulher: 24 anos e 11 meses
+                (25 * 12 - 1, False),
+            ]
+
+            for magisterio_2019_meses, esperado in casos:
+                self.cliente.sexo = "F"
+                self.cliente.nascimento = date(1960, 1, 1)
+                self.cliente.save()
+
+                resultado = simular(
+                    self.cliente,
+                    date(2026, 8, 8),
+                    180,
+                    360,
+                    300,
+                    True,
+                    None,
+                    magisterio_meses=360,
+                    magisterio_2019_meses=magisterio_2019_meses,
+                    comprovacao_magisterio=True,
+                )
+
+                regra = next(
+                    regra
+                    for regra in resultado["regras"]
+                    if regra["nome"]
+                    == "Professor — direito adquirido"
+                )
+
+                self.assertEqual(
+                    regra["elegivel"],
+                    esperado,
+                )
+
+    def test_professor_direito_adquirido_homem(self):
+        casos = [
+            # Homem: 30 anos completos até 13/11/2019
+            (30 * 12, True),
+
+            # Homem: 29 anos e 11 meses
+            (30 * 12 - 1, False),
+        ]
+
+        for magisterio_2019_meses, esperado in casos:
+            self.cliente.sexo = "M"
+            self.cliente.nascimento = date(1960, 1, 1)
+            self.cliente.save()
+
+            resultado = simular(
+                self.cliente,
+                date(2026, 8, 8),
+                180,
+                420,
+                300,
+                True,
+                None,
+                magisterio_meses=420,
+                magisterio_2019_meses=magisterio_2019_meses,
+                comprovacao_magisterio=True,
+            )
+
+            regra = next(
+                regra
+                for regra in resultado["regras"]
+                if regra["nome"]
+                == "Professor — direito adquirido"
+            )
+
+            self.assertEqual(
+                regra["elegivel"],
+                esperado,
+            )
+
+    def test_professor_direito_adquirido_nao_usa_tempo_posterior_a_2019(self):
+        self.cliente.sexo = "F"
+        self.cliente.nascimento = date(1960, 1, 1)
+        self.cliente.save()
+
+        resultado = simular(
+            self.cliente,
+            date(2026, 8, 8),
+            180,
+            360,
+            300,
+            True,
+            None,
+            magisterio_meses=360,
+            magisterio_2019_meses=240,  # 20 anos até 13/11/2019
+            comprovacao_magisterio=True,
+        )
+
+        regra = next(
+            regra
+            for regra in resultado["regras"]
+            if regra["nome"]
+            == "Professor — direito adquirido"
+        )
+
+        self.assertFalse(
+            regra["elegivel"]
+        )
+
+    def test_pcd_por_tempo_mulher_grau_grave(self):
+        self.cliente.sexo = "F"
+        self.cliente.nascimento = date(1980, 1, 1)
+        self.cliente.save()
+
+        resultado = simular(
+            self.cliente,
+            date(2026, 8, 8),
+            180,
+            300,
+            300,
+            True,
+            None,
+            grau_deficiencia="GRAVE",
+            deficiencia_meses=240,
+            deficiencia_reconhecida=True,
+        )
+
+        regra = next(
+            regra
+            for regra in resultado["regras"]
+            if regra["nome"] == "PCD — por tempo de contribuição"
+        )
+
+        self.assertTrue(regra["elegivel"])
+
+    def test_pcd_por_tempo_mulher_grave_um_mes_a_menos(self):
+        self.cliente.sexo = "F"
+        self.cliente.nascimento = date(1980, 1, 1)
+        self.cliente.save()
+
+        resultado = simular(
+            self.cliente,
+            date(2026, 8, 8),
+            180,
+            299,
+            299,
+            True,
+            None,
+            grau_deficiencia="GRAVE",
+            deficiencia_meses=239,
+            deficiencia_reconhecida=True,
+        )
+
+        regra = next(
+            regra
+            for regra in resultado["regras"]
+            if regra["nome"] == "PCD — por tempo de contribuição"
+        )
+
+        self.assertFalse(regra["elegivel"])
+
+    def test_pcd_por_tempo_homem_tres_graus(self):
+        casos = [
+            ("GRAVE", 25 * 12),
+            ("MODERADA", 29 * 12),
+            ("LEVE", 33 * 12),
+        ]
+
+        for grau, meses in casos:
+            self.cliente.sexo = "M"
+            self.cliente.nascimento = date(1970, 1, 1)
+            self.cliente.save()
+
+            resultado = simular(
+                self.cliente,
+                date(2026, 8, 8),
+                180,
+                meses,
+                300,
+                True,
+                None,
+                grau_deficiencia=grau,
+                deficiencia_meses=meses,
+                deficiencia_reconhecida=True,
+            )
+
+            regra = next(
+                regra
+                for regra in resultado["regras"]
+                if regra["nome"] == "PCD — por tempo de contribuição"
+            )
+
+            self.assertTrue(
+                regra["elegivel"],
+                msg=f"Falhou para grau {grau}",
+            )
+
+    def test_pcd_por_idade_mulher(self):
+        self.cliente.sexo = "F"
+        self.cliente.nascimento = date(1971, 8, 8)
+        self.cliente.save()
+
+        resultado = simular(
+            self.cliente,
+            date(2026, 8, 8),
+            180,
+            300,
+            300,
+            True,
+            None,
+            grau_deficiencia="MODERADA",
+            deficiencia_meses=180,
+            deficiencia_reconhecida=True,
+        )
+
+        regra = next(
+            regra
+            for regra in resultado["regras"]
+            if regra["nome"] == "PCD — por idade"
+        )
+
+        self.assertTrue(regra["elegivel"])
+
+    def test_pcd_por_idade_homem(self):
+        self.cliente.sexo = "M"
+        self.cliente.nascimento = date(1966, 8, 8)
+        self.cliente.save()
+
+        resultado = simular(
+            self.cliente,
+            date(2026, 8, 8),
+            180,
+            300,
+            300,
+            True,
+            None,
+            grau_deficiencia="LEVE",
+            deficiencia_meses=180,
+            deficiencia_reconhecida=True,
+        )
+
+        regra = next(
+            regra
+            for regra in resultado["regras"]
+            if regra["nome"] == "PCD — por idade"
+        )
+
+        self.assertTrue(regra["elegivel"])
+
+    def test_pcd_carencia_nao_precisa_ser_na_condicao_deficiencia(self):
+        resultado = simular(
+            self.cliente,
+            date(2026, 8, 8),
+            carencia=180,
+            meses_contribuicao=300,
+            meses_2019=240,
+            filiado_antes=True,
+            media=Decimal("4000.00"),
+            grau_deficiencia="grave",
+            deficiencia_meses=240,
+            deficiencia_reconhecida=True,
+        )
+
+        regras = {
+            item["nome"]: item
+            for item in resultado["regras"]
+        }
+
+        self.assertTrue(
+            regras["PCD — por tempo de contribuição"]["elegivel"]
+        )
+
+    def test_coeficiente_pcd_idade(self):
+        casos = [
+            (180, Decimal("0.85")),
+            (240, Decimal("0.90")),
+            (300, Decimal("0.95")),
+            (360, Decimal("1.00")),
+            (420, Decimal("1.00")),
+        ]
+
+        for meses, esperado in casos:
+            with self.subTest(meses=meses):
+                resultado = calcular_coeficiente_pcd_idade(
+                    meses
+                )
+
+                self.assertEqual(
+                    resultado,
+                    esperado,
+                )
