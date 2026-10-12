@@ -339,6 +339,58 @@ def calcular_coeficiente_pcd_idade(
         Decimal("1.00"),
         coeficiente,
     )
+def converter_tempo_especial_para_comum(
+    meses_especial,
+    grau_exposicao,
+    sexo_feminino,
+):
+    """
+    Converte tempo especial trabalhado até 13/11/2019
+    em tempo comum.
+
+    Fatores:
+        15 anos: mulher 2,00 / homem 2,33
+        20 anos: mulher 1,50 / homem 1,75
+        25 anos: mulher 1,20 / homem 1,40
+    """
+
+    meses_especial = inteiro(
+        meses_especial
+    )
+
+    grau = inteiro(
+        grau_exposicao
+    )
+
+    fatores = {
+        15: (
+            Decimal("2.00")
+            if sexo_feminino
+            else Decimal("2.33")
+        ),
+        20: (
+            Decimal("1.50")
+            if sexo_feminino
+            else Decimal("1.75")
+        ),
+        25: (
+            Decimal("1.20")
+            if sexo_feminino
+            else Decimal("1.40")
+        ),
+    }
+
+    fator = fatores.get(grau)
+
+    if fator is None:
+        return Decimal("0")
+
+    tempo_convertido = (
+        Decimal(meses_especial)
+        * fator
+    )
+
+    return tempo_convertido
 # ============================================================
 # SIMULAÇÃO PREVIDENCIÁRIA
 # ============================================================
@@ -466,6 +518,46 @@ def simular(
     contribuicao_anos = anos(
         meses_contribuicao
     )
+    # ========================================================
+    # CONVERSÃO DE TEMPO ESPECIAL EM TEMPO COMUM
+    # ========================================================
+    #
+    # Somente o período especial até 13/11/2019
+    # pode gerar conversão.
+    #
+    # O tempo especial já está dentro de
+    # meses_contribuicao. Portanto, adicionamos
+    # somente o ganho obtido pela conversão.
+
+    meses_especial_convertidos = 0
+
+    if (
+        grau_exposicao
+        and exposicao_meses_2019 > 0
+    ):
+        meses_especial_convertidos = (
+            converter_tempo_especial_para_comum(
+                exposicao_meses_2019,
+                grau_exposicao,
+                sexo_feminino,
+            )
+        )
+
+    ganho_conversao_especial = max(
+        Decimal("0"),
+        meses_especial_convertidos
+        - Decimal(exposicao_meses_2019),
+    )
+
+    meses_contribuicao_com_conversao = (
+        Decimal(meses_contribuicao)
+        + ganho_conversao_especial
+    )
+
+    contribuicao_anos_com_conversao = (
+        meses_contribuicao_com_conversao
+        / Decimal("12")
+    )
 
     exposicao_anos = anos(
         exposicao_meses
@@ -583,15 +675,15 @@ def simular(
         )
 
         pontos = (
-            idade_anos
-            + contribuicao_anos
+                idade_anos
+                + contribuicao_anos_com_conversao
         )
 
         elegivel_pontos = (
-            contribuicao_anos
-            >= minimo_contribuicao
-            and pontos >= pontos_exigidos
-            and carencia >= 180
+                contribuicao_anos_com_conversao
+                >= minimo_contribuicao
+                and pontos >= pontos_exigidos
+                and carencia >= 180
         )
 
         adicionar(
@@ -664,31 +756,51 @@ def simular(
         # PEDÁGIO DE 50%
         # ====================================================
 
+        # Para as regras de transição comuns, o tempo especial
+        # convertido até 13/11/2019 pode aumentar o tempo
+        # considerado naquela data.
+        #
+        # O ganho já foi calculado anteriormente em:
+        #
+        # ganho_conversao_especial
+        #
+        # Portanto, adicionamos somente o ganho da conversão,
+        # evitando contar novamente o tempo especial original.
+
+        meses_2019_com_conversao = (
+                Decimal(meses_2019)
+                + ganho_conversao_especial
+        )
+
+        tempo_contribuicao_com_conversao = (
+            meses_contribuicao_com_conversao
+        )
+
         tempo_minimo_2019 = (
-            int(minimo_contribuicao)
-            * 12
+                int(minimo_contribuicao)
+                * 12
         )
 
         falta_2019 = max(
-            0,
-            tempo_minimo_2019
-            - meses_2019,
+            Decimal("0"),
+            Decimal(tempo_minimo_2019)
+            - meses_2019_com_conversao,
         )
 
         tempo_pedagio_50 = (
-            Decimal(meses_2019)
-            + (
-                Decimal(falta_2019)
-                * Decimal("1.5")
-            )
+                meses_2019_com_conversao
+                + (
+                        falta_2019
+                        * Decimal("1.5")
+                )
         )
 
         elegivel_pedagio_50 = (
-            falta_2019 > 0
-            and falta_2019 <= 24
-            and Decimal(meses_contribuicao)
-            >= tempo_pedagio_50
-            and carencia >= 180
+                falta_2019 > 0
+                and falta_2019 <= Decimal("24")
+                and tempo_contribuicao_com_conversao
+                >= tempo_pedagio_50
+                and carencia >= 180
         )
 
         adicionar(
@@ -700,7 +812,7 @@ def simular(
                 "até 24 meses de completar "
                 "o tempo mínimo. "
                 f"Tempo informado em 2019: "
-                f"{meses_2019 / 12:.2f} anos. "
+                f"{meses_2019_com_conversao / 12:.2f} anos. "
                 f"Tempo que faltava: "
                 f"{falta_2019 / 12:.2f} anos. "
                 f"Tempo total necessário com "
@@ -721,19 +833,19 @@ def simular(
         )
 
         tempo_pedagio_100 = (
-            Decimal(meses_2019)
-            + (
-                Decimal(falta_2019)
-                * Decimal("2")
-            )
+                meses_2019_com_conversao
+                + (
+                        falta_2019
+                        * Decimal("2")
+                )
         )
 
         elegivel_pedagio_100 = (
-            idade_anos
-            >= idade_pedagio_100
-            and Decimal(meses_contribuicao)
-            >= tempo_pedagio_100
-            and carencia >= 180
+                idade_anos
+                >= idade_pedagio_100
+                and tempo_contribuicao_com_conversao
+                >= tempo_pedagio_100
+                and carencia >= 180
         )
 
         adicionar(
@@ -747,7 +859,7 @@ def simular(
                 "100% do tempo que faltava "
                 "em 13/11/2019. "
                 f"Tempo informado em 2019: "
-                f"{meses_2019 / 12:.2f} anos. "
+                f"{meses_2019_com_conversao / 12:.2f} anos. "
                 f"Tempo que faltava: "
                 f"{falta_2019 / 12:.2f} anos. "
                 f"Tempo total necessário: "
@@ -1196,6 +1308,9 @@ def simular(
     # PESSOA COM DEFICIÊNCIA
     # ========================================================
 
+    elegivel_pcd_idade = False
+    elegivel_pcd_tempo = False
+
     if grau_deficiencia:
 
         grau_pcd = str(
@@ -1312,12 +1427,34 @@ def simular(
 
         if media_decimal > 0:
 
-            coeficiente = (
-                calcular_coeficiente(
-                    contribuicao_anos,
-                    sexo_feminino,
+            # ====================================================
+            # COEFICIENTE DO BENEFÍCIO
+            # ====================================================
+
+            if elegivel_pcd_idade:
+
+                coeficiente = (
+                    calcular_coeficiente_pcd_idade(
+                        meses_contribuicao
+                    )
                 )
-            )
+
+            elif elegivel_pcd_tempo:
+
+                coeficiente = Decimal("1.00")
+
+            else:
+
+                coeficiente = (
+                    calcular_coeficiente(
+                        contribuicao_anos,
+                        sexo_feminino,
+                    )
+                )
+
+            # ====================================================
+            # VALOR DO BENEFÍCIO
+            # ====================================================
 
             estimativa = dinheiro(
                 media_decimal

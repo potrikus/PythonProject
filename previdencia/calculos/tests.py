@@ -8,7 +8,12 @@ from django.urls import reverse
 from clientes.models import Cliente
 
 from .models import Simulacao
-from .services import calcular_contribuicao, simular, calcular_coeficiente_pcd_idade
+from .services import (
+    calcular_contribuicao,
+    simular,
+    calcular_coeficiente_pcd_idade,
+    converter_tempo_especial_para_comum,
+)
 
 
 class CalculosTests(TestCase):
@@ -558,6 +563,43 @@ class CalculosTests(TestCase):
         self.assertTrue(
             regra["elegivel"]
         )
+    # --------------------------------------------------------
+    # PEDÁGIO DE 50% - CONVERSÃO DE TEMPO ESPECIAL
+    #
+    # O tempo especial até 13/11/2019 deve gerar ganho
+    # de tempo comum para a apuração do pedágio.
+    #
+    # Mulher:
+    # 10 anos especiais × fator 1,20 = 12 anos
+    # Ganho = 2 anos
+    # --------------------------------------------------------
+
+    def test_pedagio_50_considera_conversao_especial(self):
+        resultado = simular(
+            self.cliente,
+            date(2026, 8, 8),
+            180,
+            372,
+            312,
+            True,
+            None,
+            25,
+            120,
+            True,
+            120,
+        )
+
+        regra = next(
+            regra
+            for regra in resultado["regras"]
+            if regra["nome"]
+            == "Transição com pedágio de 50%"
+        )
+
+        self.assertTrue(
+            regra["elegivel"],
+            regra["motivo"],
+        )
 
     # --------------------------------------------------------
     # PEDÁGIO DE 50% - EXATAMENTE 24 MESES
@@ -643,6 +685,54 @@ class CalculosTests(TestCase):
 
         self.assertTrue(
             regra["elegivel"]
+        )
+    # --------------------------------------------------------
+    # PEDÁGIO DE 100% - CONVERSÃO DE TEMPO ESPECIAL
+    #
+    # Mulher com 25 anos em 13/11/2019.
+    # Possui 10 anos especiais de grau 25.
+    #
+    # 10 anos × 1,20 = 12 anos
+    # Ganho da conversão = 2 anos
+    #
+    # Tempo considerado em 2019:
+    # 25 + 2 = 27 anos
+    #
+    # Faltavam:
+    # 30 - 27 = 3 anos
+    #
+    # Pedágio de 100%:
+    # 3 + 3 = 6 anos
+    #
+    # Tempo necessário:
+    # 27 + 6 = 33 anos
+    # --------------------------------------------------------
+
+    def test_pedagio_100_considera_conversao_especial(self):
+        resultado = simular(
+            self.cliente,
+            date(2026, 8, 8),
+            180,
+            396,
+            300,
+            True,
+            None,
+            25,
+            120,
+            True,
+            120,
+        )
+
+        regra = next(
+            regra
+            for regra in resultado["regras"]
+            if regra["nome"]
+            == "Transição com pedágio de 100%"
+        )
+
+        self.assertTrue(
+            regra["elegivel"],
+            regra["motivo"],
         )
 
     # --------------------------------------------------------
@@ -1666,3 +1756,185 @@ class CalculosTests(TestCase):
                     resultado,
                     esperado,
                 )
+
+    def test_conversao_tempo_especial_mulher_15_anos(self):
+        resultado = converter_tempo_especial_para_comum(
+            meses_especial=12,
+            grau_exposicao=15,
+            sexo_feminino=True,
+        )
+
+        self.assertEqual(
+            resultado,
+            Decimal("24.00"),
+        )
+
+    def test_conversao_tempo_especial_homem_15_anos(self):
+        resultado = converter_tempo_especial_para_comum(
+            meses_especial=12,
+            grau_exposicao=15,
+            sexo_feminino=False,
+        )
+
+        self.assertEqual(
+            resultado,
+            Decimal("27.96"),
+        )
+
+    def test_conversao_tempo_especial_mulher_20_anos(self):
+        resultado = converter_tempo_especial_para_comum(
+            meses_especial=12,
+            grau_exposicao=20,
+            sexo_feminino=True,
+        )
+
+        self.assertEqual(
+            resultado,
+            Decimal("18.00"),
+        )
+
+    def test_conversao_tempo_especial_homem_20_anos(self):
+        resultado = converter_tempo_especial_para_comum(
+            meses_especial=12,
+            grau_exposicao=20,
+            sexo_feminino=False,
+        )
+
+        self.assertEqual(
+            resultado,
+            Decimal("21.00"),
+        )
+
+    def test_conversao_tempo_especial_mulher_25_anos(self):
+        resultado = converter_tempo_especial_para_comum(
+            meses_especial=12,
+            grau_exposicao=25,
+            sexo_feminino=True,
+        )
+
+        self.assertEqual(
+            resultado,
+            Decimal("14.40"),
+        )
+
+    def test_conversao_tempo_especial_homem_25_anos(self):
+        resultado = converter_tempo_especial_para_comum(
+            meses_especial=12,
+            grau_exposicao=25,
+            sexo_feminino=False,
+        )
+
+        self.assertEqual(
+            resultado,
+            Decimal("16.80"),
+        )
+
+    def test_conversao_tempo_especial_grau_invalido(self):
+        resultado = converter_tempo_especial_para_comum(
+            meses_especial=12,
+            grau_exposicao=10,
+            sexo_feminino=True,
+        )
+
+        self.assertEqual(
+            resultado,
+            Decimal("0"),
+        )
+
+    def test_valor_pcd_por_idade(self):
+        casos = [
+            (180, Decimal("3400.00")),
+            (240, Decimal("3600.00")),
+            (300, Decimal("3800.00")),
+            (360, Decimal("4000.00")),
+        ]
+
+        for meses, esperado in casos:
+            with self.subTest(meses=meses):
+                resultado = simular(
+                    self.cliente,
+                    date(2026, 8, 8),
+                    carencia=180,
+                    meses_contribuicao=meses,
+                    meses_2019=240,
+                    filiado_antes=True,
+                    media=Decimal("4000.00"),
+                    grau_deficiencia="grave",
+                    deficiencia_meses=180,
+                    deficiencia_reconhecida=True,
+                )
+
+                self.assertEqual(
+                    resultado["estimativa_beneficio"],
+                    str(esperado),
+                )
+
+    def test_integracao_conversao_especial_mulher_25_anos(self):
+        resultado = simular(
+            self.cliente,
+            date(2026, 8, 8),
+            carencia=180,
+            meses_contribuicao=360,
+            meses_2019=240,
+            filiado_antes=True,
+            media=Decimal("4000.00"),
+            grau_exposicao=25,
+            exposicao_meses=120,
+            exposicao_meses_2019=120,
+            ppp_comprovado=True,
+        )
+
+        self.assertEqual(
+            resultado["anos_contribuicao"],
+            30.0,
+        )
+
+    def test_integracao_conversao_especial_homem_25_anos(self):
+        resultado = simular(
+            self.cliente,
+            date(2026, 8, 8),
+            carencia=180,
+            meses_contribuicao=360,
+            meses_2019=240,
+            filiado_antes=True,
+            media=Decimal("4000.00"),
+            grau_exposicao=25,
+            exposicao_meses=120,
+            exposicao_meses_2019=120,
+            ppp_comprovado=True,
+        )
+
+        self.assertEqual(
+            resultado["anos_contribuicao"],
+            30.0,
+        )
+
+    def test_conversao_especial_aumenta_tempo_para_pontos(self):
+        resultado = simular(
+            self.cliente,
+            date(2026, 8, 8),
+            carencia=180,
+            meses_contribuicao=360,
+            meses_2019=240,
+            filiado_antes=True,
+            media=Decimal("4000.00"),
+            grau_exposicao=25,
+            exposicao_meses=120,
+            exposicao_meses_2019=120,
+            ppp_comprovado=True,
+        )
+
+        regra = next(
+            item
+            for item in resultado["regras"]
+            if item["nome"] == "Transição por pontos"
+        )
+
+        self.assertTrue(
+            regra["elegivel"]
+        )
+
+        self.assertIn(
+            "Pontuação apurada: 98.58",
+            regra["motivo"],
+        )
