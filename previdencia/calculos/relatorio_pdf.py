@@ -172,6 +172,10 @@ def gerar_relatorio_simulacao(response, simulacao):
         ],
         ["Coeficiente aplicado", valor_resultado(resultado, "coeficiente")],
         [
+            "Observação sobre o benefício",
+            valor_resultado(resultado, "aviso_estimativa_beneficio"),
+        ],
+        [
             "Quantidade de regras elegíveis",
             valor_resultado(resultado, "quantidade_regras_elegiveis", "0"),
         ],

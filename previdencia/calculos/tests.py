@@ -10,6 +10,7 @@ from clientes.models import Cliente
 from .models import Simulacao
 from .services import (
     calcular_contribuicao,
+    calcular_coeficiente,
     simular,
     calcular_coeficiente_pcd_idade,
     converter_tempo_especial_para_comum,
@@ -159,6 +160,85 @@ class CalculosTests(TestCase):
             resultado["estimativa_beneficio"],
             "2700.00",
         )
+
+    def test_coeficiente_geral_pode_superar_100_por_cento(self):
+        self.assertEqual(
+            calcular_coeficiente(Decimal("41"), True),
+            Decimal("1.12"),
+        )
+
+    def test_pedagio_100_calcula_100_por_cento_da_media(self):
+        resultado = simular(
+            self.cliente,
+            date(2026, 8, 8),
+            180,
+            384,
+            348,
+            True,
+            Decimal("3000"),
+        )
+
+        pedagio = next(
+            regra
+            for regra in resultado["regras"]
+            if regra["nome"] == "Transição com pedágio de 100%"
+        )
+
+        self.assertTrue(pedagio["elegivel"])
+        self.assertEqual(resultado["coeficiente"], "1.0000")
+        self.assertEqual(resultado["estimativa_beneficio"], "3000.00")
+
+    def test_pedagio_50_nao_estima_beneficio_sem_fator_previdenciario(self):
+        self.cliente.nascimento = date(1970, 8, 8)
+        self.cliente.save()
+
+        resultado = simular(
+            self.cliente,
+            date(2026, 8, 8),
+            180,
+            366,
+            348,
+            True,
+            Decimal("3000"),
+        )
+
+        pedagio = next(
+            regra
+            for regra in resultado["regras"]
+            if regra["nome"] == "Transição com pedágio de 50%"
+        )
+
+        self.assertTrue(pedagio["elegivel"])
+        self.assertIsNone(resultado["coeficiente"])
+        self.assertIsNone(resultado["estimativa_beneficio"])
+        self.assertIn(
+            "fator previdenciário",
+            resultado["aviso_estimativa_beneficio"],
+        )
+
+    def test_professor_pedagio_100_calcula_100_por_cento_da_media(self):
+        resultado = simular(
+            self.cliente,
+            date(2026, 8, 8),
+            180,
+            312,
+            288,
+            True,
+            Decimal("3000"),
+            magisterio_meses=312,
+            magisterio_2019_meses=288,
+            comprovacao_magisterio=True,
+        )
+
+        pedagio = next(
+            regra
+            for regra in resultado["regras"]
+            if regra["nome"] == "Professor — pedágio de 100%"
+        )
+
+        self.assertTrue(pedagio["elegivel"])
+        self.assertEqual(resultado["coeficiente"], "1.0000")
+        self.assertEqual(resultado["estimativa_beneficio"], "3000.00")
 
     # ========================================================
     # ROTA DE NOVA SIMULAÇÃO
@@ -1422,6 +1502,42 @@ class CalculosTests(TestCase):
 
         self.assertTrue(regra["elegivel"])
 
+    def test_aposentadoria_especial_permanente_nao_exige_idade_minima_por_grau(self):
+        casos = [
+            ("15", 180),
+            ("20", 240),
+            ("25", 300),
+        ]
+
+        self.cliente.nascimento = date(1980, 8, 8)
+        self.cliente.save()
+
+        for grau, meses_exposicao in casos:
+
+            resultado = simular(
+                self.cliente,
+                date(2026, 8, 8),
+                180,
+                meses_exposicao,
+                meses_exposicao,
+                False,
+                None,
+                grau_exposicao=grau,
+                exposicao_meses=meses_exposicao,
+                ppp_comprovado=True,
+            )
+
+            regra = next(
+                regra
+                for regra in resultado["regras"]
+                if regra["nome"] == "Aposentadoria especial — regra permanente"
+            )
+
+            self.assertTrue(
+                regra["elegivel"],
+                f"Deveria ser elegível na exposição de {grau} anos sem idade mínima.",
+            )
+
     def test_especial_direito_adquirido_exige_tempo_ate_2019(self):
         resultado = simular(
             self.cliente,
@@ -1467,44 +1583,44 @@ class CalculosTests(TestCase):
 
         self.assertFalse(regra["elegivel"])
 
-        def test_professor_direito_adquirido(self):
-            casos = [
-                # Mulher: 25 anos completos até 13/11/2019
-                (25 * 12, True),
+    def test_professor_direito_adquirido(self):
+        casos = [
+            # Mulher: 25 anos completos até 13/11/2019
+            (25 * 12, True),
 
-                # Mulher: 24 anos e 11 meses
-                (25 * 12 - 1, False),
-            ]
+            # Mulher: 24 anos e 11 meses
+            (25 * 12 - 1, False),
+        ]
 
-            for magisterio_2019_meses, esperado in casos:
-                self.cliente.sexo = "F"
-                self.cliente.nascimento = date(1960, 1, 1)
-                self.cliente.save()
+        for magisterio_2019_meses, esperado in casos:
+            self.cliente.sexo = "F"
+            self.cliente.nascimento = date(1960, 1, 1)
+            self.cliente.save()
 
-                resultado = simular(
-                    self.cliente,
-                    date(2026, 8, 8),
-                    180,
-                    360,
-                    300,
-                    True,
-                    None,
-                    magisterio_meses=360,
-                    magisterio_2019_meses=magisterio_2019_meses,
-                    comprovacao_magisterio=True,
-                )
+            resultado = simular(
+                self.cliente,
+                date(2026, 8, 8),
+                180,
+                360,
+                300,
+                True,
+                None,
+                magisterio_meses=360,
+                magisterio_2019_meses=magisterio_2019_meses,
+                comprovacao_magisterio=True,
+            )
 
-                regra = next(
-                    regra
-                    for regra in resultado["regras"]
-                    if regra["nome"]
-                    == "Professor — direito adquirido"
-                )
+            regra = next(
+                regra
+                for regra in resultado["regras"]
+                if regra["nome"]
+                == "Professor — direito adquirido"
+            )
 
-                self.assertEqual(
-                    regra["elegivel"],
-                    esperado,
-                )
+            self.assertEqual(
+                regra["elegivel"],
+                esperado,
+            )
 
     def test_professor_direito_adquirido_homem(self):
         casos = [

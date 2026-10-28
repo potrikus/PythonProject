@@ -125,6 +125,10 @@
                 aplicável; limites e particularidades devem ser conferidos no
                 processo.
             </p>
+        {% elif simulacao.resultado.aviso_estimativa_beneficio %}
+            <p class="text-warning mb-0">
+                {{ simulacao.resultado.aviso_estimativa_beneficio }}
+            </p>
         {% else %}
             <p class="text-muted mb-0">
                 Informe a média dos salários de contribuição já atualizada para

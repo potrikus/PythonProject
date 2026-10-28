@@ -13,7 +13,7 @@ class ClienteForm(forms.ModelForm):
             "cep", "endereco", "numero", "complemento", "bairro", "cidade", "estado", "pis", "beneficio", "observacoes",
         ]
         widgets = {
-            "nascimento": forms.DateInput(attrs={"type": "date"}),
+            "nascimento": forms.DateInput(format="%Y-%m-%d",attrs={"type": "date"},),
             "estado": forms.TextInput(attrs={"maxlength": 2, "style": "text-transform: uppercase;"}),
             "observacoes": forms.Textarea(attrs={"rows": 4}),
         }

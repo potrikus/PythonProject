@@ -263,6 +263,10 @@ def calcular_coeficiente(
 
     60% + 2% por ano excedente.
 
+    O coeficiente não possui teto percentual próprio.
+    O limite do benefício é aplicado depois, em valor,
+    pelo teto do RGPS.
+
     Base:
         Mulher: 15 anos
         Homem: 20 anos
@@ -302,10 +306,7 @@ def calcular_coeficiente(
         )
     )
 
-    return min(
-        Decimal("1.00"),
-        coeficiente,
-    )
+    return coeficiente
 
 def calcular_coeficiente_pcd_idade(
     meses_contribuicao,
@@ -993,7 +994,6 @@ def simular(
                     (
                         f"Exige {tempo_especial} anos de efetiva exposição, "
                         "180 meses de carência e PPP/LTCAT válido. "
-                        "Não considera idade mínima. "
                         f"Exposição informada: {exposicao_anos:.2f} anos."
                     ),
                 )
@@ -1418,6 +1418,19 @@ def simular(
 
     estimativa = None
     coeficiente = None
+    aviso_estimativa_beneficio = None
+
+    pedagio_50_elegivel = any(
+        regra["nome"] == "Transição com pedágio de 50%"
+        and regra["elegivel"]
+        for regra in regras
+    )
+
+    outra_regra_elegivel = any(
+        regra["nome"] != "Transição com pedágio de 50%"
+        and regra["elegivel"]
+        for regra in regras
+    )
 
     if media is not None:
 
@@ -1425,7 +1438,14 @@ def simular(
             media
         )
 
-        if media_decimal > 0:
+        if media_decimal > 0 and pedagio_50_elegivel and not outra_regra_elegivel:
+
+            aviso_estimativa_beneficio = (
+                "A estimativa pelo pedágio de 50% depende do fator "
+                "previdenciário e exige dados detalhados dos vínculos."
+            )
+
+        elif media_decimal > 0:
 
             # ====================================================
             # COEFICIENTE DO BENEFÍCIO
@@ -1440,6 +1460,17 @@ def simular(
                 )
 
             elif elegivel_pcd_tempo:
+
+                coeficiente = Decimal("1.00")
+
+            elif any(
+                regra["nome"] in (
+                    "Transição com pedágio de 100%",
+                    "Professor — pedágio de 100%",
+                )
+                and regra["elegivel"]
+                for regra in regras
+            ):
 
                 coeficiente = Decimal("1.00")
 
@@ -1533,6 +1564,8 @@ def simular(
             if estimativa is not None
             else None
         ),
+
+        "aviso_estimativa_beneficio": aviso_estimativa_beneficio,
 
         "contribuicao_mensal": None,
     }

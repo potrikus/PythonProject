@@ -90,16 +90,14 @@ class VinculoForm(forms.ModelForm):
 
         widgets = {
             "data_inicio": forms.DateInput(
+                format="%Y-%m-%d",
                 attrs={"type": "date"},
             ),
             "data_fim": forms.DateInput(
+                format="%Y-%m-%d",
                 attrs={"type": "date"},
             ),
-            "observacoes": forms.Textarea(
-                attrs={"rows": 4},
-            ),
         }
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
