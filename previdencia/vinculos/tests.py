@@ -126,3 +126,17 @@ class VinculoViewsTests(TestCase):
         self.assertFalse(
             Vinculo.objects.exists()
         )
+    def test_cadastro_sem_data_final(self):
+        response = self.client.post(
+            reverse("vinculos:cadastrar"),
+            self.dados,
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("vinculos:lista"),
+        )
+
+        vinculo = Vinculo.objects.get()
+
+        self.assertIsNone(vinculo.data_fim)

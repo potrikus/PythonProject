@@ -2054,3 +2054,4 @@ class CalculosTests(TestCase):
             "Pontuação apurada: 98.58",
             regra["motivo"],
         )
+
